@@ -265,6 +265,7 @@ function filtrosCatalogoDesdeQuery(): array
     $precioMin = $_GET['precio_min'] ?? '';
     $precioMax = $_GET['precio_max'] ?? '';
     $orden = $_GET['orden'] ?? 'recientes';
+    $disponibilidad = in_array($_GET['disponibilidad'] ?? '', ['disponible', 'agotado'], true) ? $_GET['disponibilidad'] : '';
 
     $where = ["p.estado != ''"];
     $params = [];
@@ -272,6 +273,11 @@ function filtrosCatalogoDesdeQuery(): array
     if ($q !== '') {
         $where[] = 'p.nombre LIKE ?';
         $params[] = '%' . $q . '%';
+    }
+    if ($disponibilidad === 'disponible') {
+        $where[] = "p.estado != 'agotado'";
+    } elseif ($disponibilidad === 'agotado') {
+        $where[] = "p.estado = 'agotado'";
     }
     if ($categoriasSel) {
         $where[] = 'p.categoria_id IN (' . implode(',', array_fill(0, count($categoriasSel), '?')) . ')';
@@ -306,6 +312,7 @@ function filtrosCatalogoDesdeQuery(): array
         'orden' => $ordenSql,
         'q' => $q, 'categoriasSel' => $categoriasSel, 'marcasSel' => $marcasSel,
         'tallasSel' => $tallasSel, 'precioMin' => $precioMin, 'precioMax' => $precioMax,
+        'disponibilidad' => $disponibilidad,
     ];
 }
 

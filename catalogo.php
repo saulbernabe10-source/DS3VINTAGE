@@ -13,7 +13,7 @@ $marcasSel = $f['marcasSel'];
 $tallasSel = $f['tallasSel'];
 $precioMin = $f['precioMin'];
 $precioMax = $f['precioMax'];
-$disponibilidadSel = in_array($_GET['disponibilidad'] ?? '', ['disponible', 'agotado'], true) ? $_GET['disponibilidad'] : '';
+$disponibilidadSel = $f['disponibilidad'];
 $pagina = 1;
 $porPagina = 18;
 
