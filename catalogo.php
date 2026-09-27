@@ -13,6 +13,7 @@ $marcasSel = $f['marcasSel'];
 $tallasSel = $f['tallasSel'];
 $precioMin = $f['precioMin'];
 $precioMax = $f['precioMax'];
+$disponibilidadSel = in_array($_GET['disponibilidad'] ?? '', ['disponible', 'agotado'], true) ? $_GET['disponibilidad'] : '';
 $pagina = 1;
 $porPagina = 18;
 
@@ -35,11 +36,17 @@ $tallas = array_column(db()->query("SELECT DISTINCT talla FROM productos WHERE t
 
 require __DIR__ . '/includes/header.php';
 
-function filtrosPanel(array $categorias, array $marcas, array $tallas, array $categoriasSel, array $marcasSel, array $tallasSel, string $precioMin, string $precioMax): void
+function filtrosPanel(array $categorias, array $marcas, array $tallas, array $categoriasSel, array $marcasSel, array $tallasSel, string $precioMin, string $precioMax, string $disponibilidadSel): void
 {
 ?>
 <form method="get">
     <?php if (!empty($_GET['q'])): ?><input type="hidden" name="q" value="<?= htmlspecialchars($_GET['q']) ?>"><?php endif; ?>
+    <div class="filtro-grupo">
+        <h3>Disponibilidad</h3>
+        <?php foreach (['disponible' => 'Disponible', 'agotado' => 'Agotado', '' => 'Todos'] as $valor => $texto): ?>
+            <label><input type="radio" name="disponibilidad" value="<?= $valor ?>" <?= $disponibilidadSel === $valor ? 'checked' : '' ?>> <?= $texto ?></label>
+        <?php endforeach; ?>
+    </div>
     <div class="filtro-grupo">
         <h3>Categoría</h3>
         <?php foreach ($categorias as $c): ?>
@@ -83,13 +90,13 @@ function filtrosPanel(array $categorias, array $marcas, array $tallas, array $ca
     <div x-data="{ filtrosMovilAbierto: false }">
         <button type="button" class="btn btn-outline filtros-toggle-movil" style="color:var(--negro);" @click="filtrosMovilAbierto = !filtrosMovilAbierto">Filtros y orden</button>
         <div class="filtros-movil-panel card" :class="{ abierto: filtrosMovilAbierto }" style="border:1px solid var(--borde);border-radius:6px;padding:16px;margin-bottom:16px;">
-            <?php filtrosPanel($categorias, $marcas, $tallas, $categoriasSel, $marcasSel, $tallasSel, (string) $precioMin, (string) $precioMax); ?>
+            <?php filtrosPanel($categorias, $marcas, $tallas, $categoriasSel, $marcasSel, $tallasSel, (string) $precioMin, (string) $precioMax, $disponibilidadSel); ?>
         </div>
     </div>
 
     <div class="catalogo-layout">
         <aside class="filtros-desktop">
-            <?php filtrosPanel($categorias, $marcas, $tallas, $categoriasSel, $marcasSel, $tallasSel, (string) $precioMin, (string) $precioMax); ?>
+            <?php filtrosPanel($categorias, $marcas, $tallas, $categoriasSel, $marcasSel, $tallasSel, (string) $precioMin, (string) $precioMax, $disponibilidadSel); ?>
         </aside>
         <div>
             <form method="get" style="text-align:right;margin-bottom:16px;">
