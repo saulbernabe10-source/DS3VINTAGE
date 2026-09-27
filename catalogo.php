@@ -40,13 +40,13 @@ require __DIR__ . '/includes/header.php';
 function filtrosPanel(array $categorias, array $marcas, array $tallas, array $categoriasSel, array $marcasSel, array $tallasSel, string $precioMin, string $precioMax, string $disponibilidadSel): void
 {
 ?>
-<form method="get">
+<form method="get" action="catalogo.php" class="form-catalogo">
     <?php if (!empty($_GET['q'])): ?><input type="hidden" name="q" value="<?= htmlspecialchars($_GET['q']) ?>"><?php endif; ?>
     <?php if (!empty($_GET['orden'])): ?><input type="hidden" name="orden" value="<?= htmlspecialchars($_GET['orden']) ?>"><?php endif; ?>
     <div class="filtro-grupo">
         <h3>Disponibilidad</h3>
         <?php foreach (['disponible' => 'Disponible', 'agotado' => 'Agotado', '' => 'Todos'] as $valor => $texto): ?>
-            <label><input type="radio" name="disponibilidad" value="<?= $valor ?>" <?= $disponibilidadSel === $valor ? 'checked' : '' ?> onchange="this.form.submit()"> <?= $texto ?></label>
+            <label><input type="radio" name="disponibilidad" value="<?= $valor ?>" <?= $disponibilidadSel === $valor ? 'checked' : '' ?>> <?= $texto ?></label>
         <?php endforeach; ?>
     </div>
     <div class="filtro-grupo">
@@ -76,8 +76,8 @@ function filtrosPanel(array $categorias, array $marcas, array $tallas, array $ca
             <input type="number" name="precio_max" placeholder="Máx" value="<?= htmlspecialchars($precioMax) ?>" style="width:50%;padding:8px;border:1px solid var(--borde);">
         </div>
     </div>
-    <button type="submit" class="btn btn-block" style="margin-top:16px;">Aplicar filtros</button>
-    <a href="catalogo.php" class="btn btn-outline btn-block" style="margin-top:8px;color:var(--negro);">Limpiar</a>
+    <noscript><button type="submit" class="btn btn-block" style="margin-top:16px;">Aplicar filtros</button></noscript>
+    <a href="catalogo.php" class="btn btn-outline btn-block js-limpiar-filtros" style="margin-top:16px;color:var(--negro);">Limpiar filtros</a>
 </form>
 <?php
 }
@@ -86,22 +86,22 @@ function filtrosPanel(array $categorias, array $marcas, array $tallas, array $ca
 <div class="contenedor" style="padding-top:32px;">
     <div class="seccion-titulo" style="text-align:left;margin-bottom:24px;">
         <h1 style="font-size:2rem;">Catálogo</h1>
-        <p><?= $info['total'] ?> prenda<?= $info['total'] === 1 ? '' : 's' ?></p>
+        <p id="catalogo-total"><?= $info['total'] ?> prenda<?= $info['total'] === 1 ? '' : 's' ?></p>
     </div>
 
     <div x-data="{ filtrosMovilAbierto: false }">
         <button type="button" class="btn btn-outline filtros-toggle-movil" style="color:var(--negro);" @click="filtrosMovilAbierto = !filtrosMovilAbierto">Filtros y orden</button>
-        <div class="filtros-movil-panel card" :class="{ abierto: filtrosMovilAbierto }" style="border:1px solid var(--borde);border-radius:6px;padding:16px;margin-bottom:16px;">
+        <div class="filtros-movil-panel card" id="filtros-movil" :class="{ abierto: filtrosMovilAbierto }" style="border:1px solid var(--borde);border-radius:6px;padding:16px;margin-bottom:16px;">
             <?php filtrosPanel($categorias, $marcas, $tallas, $categoriasSel, $marcasSel, $tallasSel, (string) $precioMin, (string) $precioMax, $disponibilidadSel); ?>
         </div>
     </div>
 
     <div class="catalogo-layout">
-        <aside class="filtros-desktop">
+        <aside class="filtros-desktop" id="filtros-desktop">
             <?php filtrosPanel($categorias, $marcas, $tallas, $categoriasSel, $marcasSel, $tallasSel, (string) $precioMin, (string) $precioMax, $disponibilidadSel); ?>
         </aside>
-        <div>
-            <form method="get" style="text-align:right;margin-bottom:16px;">
+        <div id="catalogo-resultados" style="transition:opacity .15s;">
+            <form method="get" action="catalogo.php" class="form-catalogo" style="text-align:right;margin-bottom:16px;">
                 <?php
                 // Conserva todos los filtros activos al cambiar el orden.
                 $qsFiltros = $_GET;
@@ -113,7 +113,7 @@ function filtrosPanel(array $categorias, array $marcas, array $tallas, array $ca
                 endforeach;
                 ?>
                 <label style="font-size:0.85rem;">Ordenar por
-                    <select name="orden" onchange="this.form.submit()" style="padding:8px;border:1px solid var(--borde);margin-left:6px;">
+                    <select name="orden" style="padding:8px;border:1px solid var(--borde);margin-left:6px;">
                         <option value="recientes" <?= $orden === 'recientes' ? 'selected' : '' ?>>Más recientes</option>
                         <option value="precio_asc" <?= $orden === 'precio_asc' ? 'selected' : '' ?>>Precio: menor a mayor</option>
                         <option value="precio_desc" <?= $orden === 'precio_desc' ? 'selected' : '' ?>>Precio: mayor a menor</option>
@@ -133,51 +133,117 @@ function filtrosPanel(array $categorias, array $marcas, array $tallas, array $ca
             </div>
             <div id="catalogo-cargando" style="text-align:center;padding:24px;color:var(--gris);font-size:0.85rem;display:none;">Cargando más prendas...</div>
             <div id="catalogo-sentinel" style="height:1px;"></div>
-            <script>
-            (function() {
-                var grid = document.getElementById('grid-catalogo');
-                var sentinel = document.getElementById('catalogo-sentinel');
-                var cargando = document.getElementById('catalogo-cargando');
-                if (!grid || !sentinel) return;
-                var enCurso = false;
-
-                var observer = new IntersectionObserver(function(entradas) {
-                    entradas.forEach(function(entrada) {
-                        if (entrada.isIntersecting) cargarSiguiente();
-                    });
-                }, { rootMargin: '600px' });
-                observer.observe(sentinel);
-
-                function cargarSiguiente() {
-                    var pagina = parseInt(grid.dataset.siguientePagina, 10);
-                    var totalPaginas = parseInt(grid.dataset.totalPaginas, 10);
-                    if (enCurso || pagina > totalPaginas) {
-                        if (pagina > totalPaginas) observer.disconnect();
-                        return;
-                    }
-                    enCurso = true;
-                    cargando.style.display = 'block';
-                    fetch('catalogo_cargar.php?' + grid.dataset.qs + '&pagina=' + pagina)
-                        .then(function(r) { return r.text(); })
-                        .then(function(html) {
-                            grid.insertAdjacentHTML('beforeend', html);
-                            grid.dataset.siguientePagina = pagina + 1;
-                            cargando.style.display = 'none';
-                            enCurso = false;
-                            if (pagina + 1 > totalPaginas) observer.disconnect();
-                        })
-                        .catch(function() {
-                            cargando.style.display = 'none';
-                            enCurso = false;
-                        });
-                }
-            })();
-            </script>
             <?php else: ?>
                 <div class="aviso-vacio">No se encontraron prendas con esos filtros.</div>
             <?php endif; ?>
         </div>
     </div>
 </div>
+
+<script>
+(function() {
+    // Scroll infinito: se reinicia cada vez que los filtros reemplazan la grilla.
+    var observer = null;
+    function iniciarScrollInfinito() {
+        if (observer) observer.disconnect();
+        var grid = document.getElementById('grid-catalogo');
+        var sentinel = document.getElementById('catalogo-sentinel');
+        var cargando = document.getElementById('catalogo-cargando');
+        if (!grid || !sentinel) return;
+        var enCurso = false;
+
+        var obs = observer = new IntersectionObserver(function(entradas) {
+            entradas.forEach(function(entrada) {
+                if (entrada.isIntersecting) cargarSiguiente();
+            });
+        }, { rootMargin: '600px' });
+        obs.observe(sentinel);
+
+        function cargarSiguiente() {
+            var pagina = parseInt(grid.dataset.siguientePagina, 10);
+            var totalPaginas = parseInt(grid.dataset.totalPaginas, 10);
+            if (enCurso || pagina > totalPaginas) {
+                if (pagina > totalPaginas) obs.disconnect();
+                return;
+            }
+            enCurso = true;
+            cargando.style.display = 'block';
+            fetch('catalogo_cargar.php?' + grid.dataset.qs + '&pagina=' + pagina)
+                .then(function(r) { return r.text(); })
+                .then(function(html) {
+                    grid.insertAdjacentHTML('beforeend', html);
+                    grid.dataset.siguientePagina = pagina + 1;
+                    cargando.style.display = 'none';
+                    enCurso = false;
+                    if (pagina + 1 > totalPaginas) obs.disconnect();
+                })
+                .catch(function() {
+                    cargando.style.display = 'none';
+                    enCurso = false;
+                });
+        }
+    }
+
+    // Filtros dinámicos: cada cambio recarga solo los resultados, sin botón "Aplicar".
+    var resultados = document.getElementById('catalogo-resultados');
+    var peticionActual = 0;
+
+    function cargarCatalogo(qs, agregarHistorial) {
+        var url = 'catalogo.php' + (qs ? '?' + qs : '');
+        var idPeticion = ++peticionActual;
+        resultados.style.opacity = '0.5';
+        fetch(url)
+            .then(function(r) { return r.text(); })
+            .then(function(html) {
+                if (idPeticion !== peticionActual) return; // llegó una respuesta más nueva
+                var doc = new DOMParser().parseFromString(html, 'text/html');
+                ['catalogo-total', 'catalogo-resultados', 'filtros-desktop'].forEach(function(id) {
+                    var nuevo = doc.getElementById(id);
+                    var actual = document.getElementById(id);
+                    if (nuevo && actual) actual.innerHTML = nuevo.innerHTML;
+                });
+                // En el panel móvil solo se cambia el formulario, para que no se cierre.
+                var movilNuevo = doc.querySelector('#filtros-movil form');
+                var movilActual = document.querySelector('#filtros-movil form');
+                if (movilNuevo && movilActual) movilActual.replaceWith(document.importNode(movilNuevo, true));
+                resultados.style.opacity = '';
+                if (agregarHistorial) history.pushState(null, '', url);
+                iniciarScrollInfinito();
+            })
+            .catch(function() {
+                window.location.href = url; // si algo falla, recarga la página normal
+            });
+    }
+
+    function qsDeFormulario(form) {
+        var params = new URLSearchParams();
+        new FormData(form).forEach(function(valor, clave) {
+            if (valor !== '') params.append(clave, valor);
+        });
+        return params.toString();
+    }
+
+    document.addEventListener('change', function(e) {
+        var form = e.target.closest('form.form-catalogo');
+        if (form) cargarCatalogo(qsDeFormulario(form), true);
+    });
+    document.addEventListener('submit', function(e) {
+        var form = e.target.closest('form.form-catalogo');
+        if (!form) return;
+        e.preventDefault();
+        cargarCatalogo(qsDeFormulario(form), true);
+    });
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.js-limpiar-filtros')) return;
+        e.preventDefault();
+        cargarCatalogo('', true);
+    });
+    window.addEventListener('popstate', function() {
+        cargarCatalogo(window.location.search.replace(/^\?/, ''), false);
+    });
+
+    iniciarScrollInfinito();
+})();
+</script>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>
