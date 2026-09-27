@@ -46,7 +46,7 @@ function filtrosPanel(array $categorias, array $marcas, array $tallas, array $ca
     <div class="filtro-grupo">
         <h3>Disponibilidad</h3>
         <?php foreach (['disponible' => 'Disponible', 'agotado' => 'Agotado', '' => 'Todos'] as $valor => $texto): ?>
-            <label><input type="radio" name="disponibilidad" value="<?= $valor ?>" <?= $disponibilidadSel === $valor ? 'checked' : '' ?>> <?= $texto ?></label>
+            <label><input type="radio" name="disponibilidad" value="<?= $valor ?>" <?= $disponibilidadSel === $valor ? 'checked' : '' ?> onchange="this.form.submit()"> <?= $texto ?></label>
         <?php endforeach; ?>
     </div>
     <div class="filtro-grupo">
