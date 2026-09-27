@@ -300,7 +300,9 @@ function filtrosCatalogoDesdeQuery(): array
         $params[] = (float) $precioMax;
     }
 
-    $ordenSql = match ($orden) {
+    $orden = in_array($orden, ['precio_asc', 'precio_desc'], true) ? $orden : 'recientes';
+    // Las prendas agotadas siempre van al final, sea cual sea el orden elegido.
+    $ordenSql = "(p.estado = 'agotado') ASC, " . match ($orden) {
         'precio_asc' => 'COALESCE(p.precio_oferta, p.precio) ASC',
         'precio_desc' => 'COALESCE(p.precio_oferta, p.precio) DESC',
         default => 'p.fecha_creacion DESC',
@@ -312,7 +314,7 @@ function filtrosCatalogoDesdeQuery(): array
         'orden' => $ordenSql,
         'q' => $q, 'categoriasSel' => $categoriasSel, 'marcasSel' => $marcasSel,
         'tallasSel' => $tallasSel, 'precioMin' => $precioMin, 'precioMax' => $precioMax,
-        'disponibilidad' => $disponibilidad,
+        'disponibilidad' => $disponibilidad, 'ordenSel' => $orden,
     ];
 }
 

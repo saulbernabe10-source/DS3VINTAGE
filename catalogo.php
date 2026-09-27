@@ -14,6 +14,7 @@ $tallasSel = $f['tallasSel'];
 $precioMin = $f['precioMin'];
 $precioMax = $f['precioMax'];
 $disponibilidadSel = $f['disponibilidad'];
+$orden = $f['ordenSel'];
 $pagina = 1;
 $porPagina = 18;
 
@@ -41,6 +42,7 @@ function filtrosPanel(array $categorias, array $marcas, array $tallas, array $ca
 ?>
 <form method="get">
     <?php if (!empty($_GET['q'])): ?><input type="hidden" name="q" value="<?= htmlspecialchars($_GET['q']) ?>"><?php endif; ?>
+    <?php if (!empty($_GET['orden'])): ?><input type="hidden" name="orden" value="<?= htmlspecialchars($_GET['orden']) ?>"><?php endif; ?>
     <div class="filtro-grupo">
         <h3>Disponibilidad</h3>
         <?php foreach (['disponible' => 'Disponible', 'agotado' => 'Agotado', '' => 'Todos'] as $valor => $texto): ?>
@@ -100,7 +102,16 @@ function filtrosPanel(array $categorias, array $marcas, array $tallas, array $ca
         </aside>
         <div>
             <form method="get" style="text-align:right;margin-bottom:16px;">
-                <?php foreach (['q' => $q] as $k => $v): if ($v !== '') echo '<input type="hidden" name="' . $k . '" value="' . htmlspecialchars($v) . '">'; endforeach; ?>
+                <?php
+                // Conserva todos los filtros activos al cambiar el orden.
+                $qsFiltros = $_GET;
+                unset($qsFiltros['orden'], $qsFiltros['pagina']);
+                foreach (explode('&', http_build_query($qsFiltros)) as $par):
+                    if ($par === '') continue;
+                    [$k, $v] = array_pad(explode('=', $par, 2), 2, '');
+                    echo '<input type="hidden" name="' . htmlspecialchars(urldecode($k)) . '" value="' . htmlspecialchars(urldecode($v)) . '">';
+                endforeach;
+                ?>
                 <label style="font-size:0.85rem;">Ordenar por
                     <select name="orden" onchange="this.form.submit()" style="padding:8px;border:1px solid var(--borde);margin-left:6px;">
                         <option value="recientes" <?= $orden === 'recientes' ? 'selected' : '' ?>>Más recientes</option>
